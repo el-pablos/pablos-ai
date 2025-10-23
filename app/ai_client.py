@@ -18,7 +18,16 @@ class DOAIClient:
     # DO AI inference endpoint
     BASE_URL = "https://inference.do-ai.run/v1"
 
-    def __init__(self, access_key: str, model_chat: str, model_image: str, max_tokens: int = 400):
+    # Fallback responses for when API is rate limited
+    FALLBACK_RESPONSES = [
+        "Waduh bro, gue lagi kena rate limit dari API nih. Coba lagi nanti ya! 😅",
+        "Maaf ya, API gue lagi dibatasin. Tunggu sebentar dulu ya bro! 🙏",
+        "Eh sorry, quota API gue abis nih. Nanti gue bales lagi ya! 😊",
+        "Wah, API limit exceeded bro. Sabar ya, nanti gue online lagi! 💪",
+    ]
+
+    def __init__(self, access_key: str, model_chat: str, model_image: str, max_tokens: int = 400,
+                 enable_fallback: bool = True):
         """
         Initialize DO AI client.
 
@@ -27,11 +36,14 @@ class DOAIClient:
             model_chat: Chat model name
             model_image: Image model name
             max_tokens: Maximum tokens for chat responses
+            enable_fallback: Whether to use fallback responses when rate limited
         """
         self.access_key = access_key
         self.model_chat = model_chat
         self.model_image = model_image
         self.max_tokens = max_tokens
+        self.enable_fallback = enable_fallback
+        self.fallback_counter = 0
         self.session = requests.Session()
         self.session.headers.update({
             "Content-Type": "application/json",
@@ -39,6 +51,8 @@ class DOAIClient:
         })
 
         logger.info(f"Initialized DOAIClient with chat model: {model_chat}, image model: {model_image}")
+        if enable_fallback:
+            logger.info("Fallback responses enabled for rate limit scenarios")
 
     def generate_chat_response(self, prompt: str, temperature: float = 0.7) -> Optional[str]:
         """
@@ -121,6 +135,11 @@ class DOAIClient:
                         continue
                     else:
                         logger.error(f"Rate limit exceeded after {max_retries} attempts")
+                        # Use fallback response if enabled
+                        if self.enable_fallback:
+                            fallback = self._get_fallback_response()
+                            logger.warning(f"Using fallback response due to rate limit")
+                            return fallback
                         return None
                 else:
                     # Other HTTP errors
@@ -249,6 +268,18 @@ class DOAIClient:
 
         return None
 
+    def _get_fallback_response(self) -> str:
+        """
+        Get a fallback response when API is rate limited.
+        Rotates through different messages to avoid repetition.
+
+        Returns:
+            A friendly fallback message
+        """
+        response = self.FALLBACK_RESPONSES[self.fallback_counter % len(self.FALLBACK_RESPONSES)]
+        self.fallback_counter += 1
+        return response
+
     def close(self):
         """Close the HTTP session."""
         if self.session:
@@ -291,7 +322,8 @@ class MockDOAIClient:
 
 
 def create_ai_client(access_key: str, model_chat: str, model_image: str,
-                     max_tokens: int = 400, use_mock: bool = False) -> Union[DOAIClient, MockDOAIClient]:
+                     max_tokens: int = 400, use_mock: bool = False,
+                     enable_fallback: bool = True) -> Union[DOAIClient, MockDOAIClient]:
     """
     Factory function to create AI client.
 
@@ -301,6 +333,7 @@ def create_ai_client(access_key: str, model_chat: str, model_image: str,
         model_image: Image model name
         max_tokens: Maximum tokens for responses
         use_mock: Whether to use mock client for testing
+        enable_fallback: Whether to enable fallback responses when rate limited
 
     Returns:
         AI client instance
@@ -308,5 +341,5 @@ def create_ai_client(access_key: str, model_chat: str, model_image: str,
     if use_mock:
         return MockDOAIClient(access_key, model_chat, model_image, max_tokens)
     else:
-        return DOAIClient(access_key, model_chat, model_image, max_tokens)
+        return DOAIClient(access_key, model_chat, model_image, max_tokens, enable_fallback)
 
