@@ -40,7 +40,6 @@ class PablosBot:
         # Load configuration
         self.telegram_token = os.getenv('TELEGRAM_BOT_TOKEN')
         self.model_access_key = os.getenv('MODEL_ACCESS_KEY')
-        self.workspace_id = os.getenv('GRADIENT_WORKSPACE_ID')
         self.model_chat = os.getenv('MODEL_CHAT', 'anthropic-claude-opus-4')
         self.model_image = os.getenv('MODEL_IMAGE', 'stability-image-1')
         self.max_tokens = int(os.getenv('MAX_TOKENS', '400'))
@@ -53,25 +52,22 @@ class PablosBot:
             raise ValueError("TELEGRAM_BOT_TOKEN is required")
         if not self.model_access_key:
             raise ValueError("MODEL_ACCESS_KEY is required")
-        if not self.workspace_id:
-            raise ValueError("GRADIENT_WORKSPACE_ID is required")
-        
+
         logger.info("Configuration loaded successfully")
         logger.info(f"Chat model: {self.model_chat}")
         logger.info(f"Image model: {self.model_image}")
         logger.info(f"Max tokens: {self.max_tokens}")
         logger.info(f"Cooldown: {self.cooldown}s")
-        
+
         # Initialize components
         self._init_components()
-    
+
     def _init_components(self):
         """Initialize bot components."""
         # Initialize AI client
         logger.info("Initializing AI client...")
         self.ai_client = create_ai_client(
             access_key=self.model_access_key,
-            workspace_id=self.workspace_id,
             model_chat=self.model_chat,
             model_image=self.model_image,
             max_tokens=self.max_tokens,

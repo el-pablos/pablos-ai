@@ -10,7 +10,7 @@ from telegram import Update
 from telegram.constants import ChatAction
 from telegram.ext import ContextTypes
 
-from app.ai_client import GradientAIClient
+from app.ai_client import DOAIClient
 from app.memory import ConversationMemory
 from app.file_storage import FileStorage
 from app.utils import (
@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 class BotHandlers:
     """Container for all bot command and message handlers."""
 
-    def __init__(self, ai_client: GradientAIClient, memory: ConversationMemory,
+    def __init__(self, ai_client: DOAIClient, memory: ConversationMemory,
                  rate_limiter: RateLimiter, cache: SimpleCache, file_storage: FileStorage):
         """
         Initialize handlers.
