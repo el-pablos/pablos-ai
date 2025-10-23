@@ -11,7 +11,7 @@ from typing import Optional
 from dotenv import load_dotenv
 from telegram.ext import Application, CommandHandler, MessageHandler, filters
 
-from app.ai_client import create_ai_client
+from app.ai_client import create_ai_client, EndpointConfig
 from app.memory import ConversationMemory
 from app.file_storage import FileStorage
 from app.utils import RateLimiter, SimpleCache
@@ -39,39 +39,78 @@ class PablosBot:
         """Initialize the bot with configuration from environment variables."""
         # Load configuration
         self.telegram_token = os.getenv('TELEGRAM_BOT_TOKEN')
-        self.model_access_key = os.getenv('MODEL_ACCESS_KEY')
-        self.model_chat = os.getenv('MODEL_CHAT', 'anthropic-claude-opus-4')
-        self.model_image = os.getenv('MODEL_IMAGE', 'stability-image-1')
         self.max_tokens = int(os.getenv('MAX_TOKENS', '400'))
         self.cooldown = int(os.getenv('COOLDOWN', '2'))
         self.webhook_url = os.getenv('WEBHOOK_URL')
         self.port = int(os.getenv('PORT', '8443'))
+        self.endpoint_cooldown = int(os.getenv('ENDPOINT_COOLDOWN', '300'))  # 5 minutes default
 
         # Validate required configuration
         if not self.telegram_token:
             raise ValueError("TELEGRAM_BOT_TOKEN is required")
-        if not self.model_access_key:
-            raise ValueError("MODEL_ACCESS_KEY is required")
+
+        # Load endpoint configurations
+        self.endpoints = self._load_endpoints()
+        if not self.endpoints:
+            raise ValueError("At least one endpoint configuration is required")
 
         logger.info("Configuration loaded successfully")
-        logger.info(f"Chat model: {self.model_chat}")
-        logger.info(f"Image model: {self.model_image}")
+        logger.info(f"Loaded {len(self.endpoints)} endpoint(s)")
         logger.info(f"Max tokens: {self.max_tokens}")
         logger.info(f"Cooldown: {self.cooldown}s")
+        logger.info(f"Endpoint cooldown: {self.endpoint_cooldown}s")
 
         # Initialize components
         self._init_components()
 
+    def _load_endpoints(self) -> list:
+        """Load endpoint configurations from environment variables."""
+        endpoints = []
+
+        # Try to load up to 3 endpoints (can be extended)
+        for i in range(1, 4):
+            suffix = "" if i == 1 else f"_{i}"
+
+            access_key = os.getenv(f'MODEL_ACCESS_KEY{suffix}')
+            base_url = os.getenv(f'MODEL_BASE_URL{suffix}')
+            model_chat = os.getenv(f'MODEL_CHAT{suffix}')
+            model_image = os.getenv(f'MODEL_IMAGE{suffix}')
+
+            # Skip if access key is not provided
+            if not access_key:
+                continue
+
+            # Use defaults if not specified
+            if not base_url:
+                base_url = "https://inference.do-ai.run/v1"
+            if not model_chat:
+                model_chat = "anthropic-claude-opus-4"
+            if not model_image:
+                model_image = "stability-image-1"
+
+            endpoint = EndpointConfig(
+                base_url=base_url,
+                access_key=access_key,
+                model_chat=model_chat,
+                model_image=model_image,
+                name=f"endpoint-{i}" if i > 1 else "primary"
+            )
+
+            endpoints.append(endpoint)
+            logger.info(f"Loaded {endpoint.name}: {base_url} (chat: {model_chat})")
+
+        return endpoints
+
     def _init_components(self):
         """Initialize bot components."""
-        # Initialize AI client
-        logger.info("Initializing AI client...")
+        # Initialize AI client with multi-endpoint support
+        logger.info("Initializing AI client with multi-endpoint failover...")
         self.ai_client = create_ai_client(
-            access_key=self.model_access_key,
-            model_chat=self.model_chat,
-            model_image=self.model_image,
+            endpoints=self.endpoints,
             max_tokens=self.max_tokens,
-            use_mock=False  # Set to True for testing without API calls
+            use_mock=False,  # Set to True for testing without API calls
+            enable_fallback=True,
+            endpoint_cooldown=self.endpoint_cooldown
         )
         
         # Initialize memory
