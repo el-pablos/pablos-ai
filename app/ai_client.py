@@ -19,33 +19,35 @@ except ImportError:
 
 class GradientAIClient:
     """Wrapper for Gradient AI API calls."""
-    
-    def __init__(self, access_key: str, model_chat: str, model_image: str, max_tokens: int = 400):
+
+    def __init__(self, access_key: str, workspace_id: str, model_chat: str, model_image: str, max_tokens: int = 400):
         """
         Initialize Gradient AI client.
-        
+
         Args:
             access_key: Gradient AI access key
+            workspace_id: Gradient AI workspace ID
             model_chat: Chat model name
             model_image: Image model name
             max_tokens: Maximum tokens for chat responses
         """
         if not GRADIENT_AVAILABLE:
             raise ImportError("gradientai package is required. Install with: pip install gradientai")
-        
+
         self.access_key = access_key
+        self.workspace_id = workspace_id
         self.model_chat = model_chat
         self.model_image = model_image
         self.max_tokens = max_tokens
         self.gradient: Optional[Gradient] = None
-        
+
         logger.info(f"Initialized GradientAIClient with chat model: {model_chat}, image model: {model_image}")
     
     def _ensure_connected(self):
         """Ensure Gradient client is connected."""
         if self.gradient is None:
             try:
-                self.gradient = Gradient(access_token=self.access_key)
+                self.gradient = Gradient(access_token=self.access_key, workspace_id=self.workspace_id)
                 logger.info("Connected to Gradient AI")
             except Exception as e:
                 logger.error(f"Failed to connect to Gradient AI: {e}")
@@ -163,10 +165,11 @@ class GradientAIClient:
 
 class MockGradientAIClient:
     """Mock client for testing without actual API calls."""
-    
-    def __init__(self, access_key: str, model_chat: str, model_image: str, max_tokens: int = 400):
+
+    def __init__(self, access_key: str, workspace_id: str, model_chat: str, model_image: str, max_tokens: int = 400):
         """Initialize mock client."""
         self.access_key = access_key
+        self.workspace_id = workspace_id
         self.model_chat = model_chat
         self.model_image = model_image
         self.max_tokens = max_tokens
@@ -190,23 +193,24 @@ class MockGradientAIClient:
         logger.info("Mock: Closed connection")
 
 
-def create_ai_client(access_key: str, model_chat: str, model_image: str, 
+def create_ai_client(access_key: str, workspace_id: str, model_chat: str, model_image: str,
                      max_tokens: int = 400, use_mock: bool = False) -> Union[GradientAIClient, MockGradientAIClient]:
     """
     Factory function to create AI client.
-    
+
     Args:
         access_key: Gradient AI access key
+        workspace_id: Gradient AI workspace ID
         model_chat: Chat model name
         model_image: Image model name
         max_tokens: Maximum tokens for responses
         use_mock: Whether to use mock client for testing
-        
+
     Returns:
         AI client instance
     """
     if use_mock:
-        return MockGradientAIClient(access_key, model_chat, model_image, max_tokens)
+        return MockGradientAIClient(access_key, workspace_id, model_chat, model_image, max_tokens)
     else:
-        return GradientAIClient(access_key, model_chat, model_image, max_tokens)
+        return GradientAIClient(access_key, workspace_id, model_chat, model_image, max_tokens)
 
