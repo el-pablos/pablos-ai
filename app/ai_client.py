@@ -4,6 +4,7 @@ DO AI inference client wrapper for chat and image generation.
 
 import logging
 import base64
+import time
 import requests
 from typing import Optional, Union
 from io import BytesIO
@@ -41,7 +42,7 @@ class DOAIClient:
 
     def generate_chat_response(self, prompt: str, temperature: float = 0.7) -> Optional[str]:
         """
-        Generate a chat response using DO AI inference API.
+        Generate a chat response using DO AI inference API with retry logic.
 
         Args:
             prompt: The prompt to send to the model
@@ -50,56 +51,101 @@ class DOAIClient:
         Returns:
             Generated response text or None if failed
         """
-        try:
-            logger.info(f"Generating chat response with model: {self.model_chat}")
-            logger.debug(f"Prompt length: {len(prompt)} characters")
+        max_retries = 3
+        base_delay = 1.0  # Start with 1 second delay
 
-            # Prepare the request
-            url = f"{self.BASE_URL}/chat/completions"
-            data = {
-                "model": self.model_chat,
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ],
-                "max_tokens": self.max_tokens,
-                "temperature": temperature
-            }
+        for attempt in range(max_retries):
+            try:
+                if attempt > 0:
+                    logger.info(f"Retry attempt {attempt + 1}/{max_retries} for chat response")
+                else:
+                    logger.info(f"Generating chat response with model: {self.model_chat}")
+                    logger.debug(f"Prompt length: {len(prompt)} characters")
 
-            # Make the API request
-            response = self.session.post(url, json=data, timeout=30)
-            response.raise_for_status()
+                # Prepare the request
+                url = f"{self.BASE_URL}/chat/completions"
+                data = {
+                    "model": self.model_chat,
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": prompt
+                        }
+                    ],
+                    "max_tokens": self.max_tokens,
+                    "temperature": temperature
+                }
 
-            # Parse the response
-            result_json = response.json()
+                # Make the API request
+                response = self.session.post(url, json=data, timeout=30)
+                response.raise_for_status()
 
-            # Extract the generated text (OpenAI-compatible format)
-            if "choices" in result_json and len(result_json["choices"]) > 0:
-                choice = result_json["choices"][0]
-                if "message" in choice and "content" in choice["message"]:
-                    result = choice["message"]["content"].strip()
-                    logger.info(f"Generated response length: {len(result)} characters")
-                    return result
-                elif "text" in choice:
-                    result = choice["text"].strip()
-                    logger.info(f"Generated response length: {len(result)} characters")
-                    return result
+                # Parse the response
+                result_json = response.json()
 
-            logger.error(f"Unexpected response format: {result_json}")
-            return None
+                # Extract the generated text (OpenAI-compatible format)
+                if "choices" in result_json and len(result_json["choices"]) > 0:
+                    choice = result_json["choices"][0]
+                    if "message" in choice and "content" in choice["message"]:
+                        result = choice["message"]["content"].strip()
+                        logger.info(f"Generated response length: {len(result)} characters")
+                        return result
+                    elif "text" in choice:
+                        result = choice["text"].strip()
+                        logger.info(f"Generated response length: {len(result)} characters")
+                        return result
 
-        except requests.exceptions.RequestException as e:
-            logger.error(f"HTTP error generating chat response: {e}", exc_info=True)
-            return None
-        except Exception as e:
-            logger.error(f"Error generating chat response: {e}", exc_info=True)
-            return None
+                logger.error(f"Unexpected response format: {result_json}")
+                return None
+
+            except requests.exceptions.HTTPError as e:
+                # Handle rate limiting (429) with exponential backoff
+                if e.response.status_code == 429:
+                    # Check for Retry-After header
+                    retry_after = e.response.headers.get('Retry-After')
+                    if retry_after:
+                        try:
+                            delay = float(retry_after)
+                            logger.warning(f"Rate limited (429). Retry-After header: {delay}s")
+                        except ValueError:
+                            delay = base_delay * (2 ** attempt)
+                            logger.warning(f"Rate limited (429). Using exponential backoff: {delay}s")
+                    else:
+                        delay = base_delay * (2 ** attempt)
+                        logger.warning(f"Rate limited (429). Using exponential backoff: {delay}s")
+
+                    # If this is not the last attempt, wait and retry
+                    if attempt < max_retries - 1:
+                        logger.info(f"Waiting {delay}s before retry...")
+                        time.sleep(delay)
+                        continue
+                    else:
+                        logger.error(f"Rate limit exceeded after {max_retries} attempts")
+                        return None
+                else:
+                    # Other HTTP errors
+                    logger.error(f"HTTP {e.response.status_code} error: {e}", exc_info=True)
+                    return None
+
+            except requests.exceptions.RequestException as e:
+                logger.error(f"Network error generating chat response: {e}", exc_info=True)
+                # Retry on network errors
+                if attempt < max_retries - 1:
+                    delay = base_delay * (2 ** attempt)
+                    logger.info(f"Retrying after network error in {delay}s...")
+                    time.sleep(delay)
+                    continue
+                return None
+
+            except Exception as e:
+                logger.error(f"Error generating chat response: {e}", exc_info=True)
+                return None
+
+        return None
 
     def generate_image(self, prompt: str) -> Optional[bytes]:
         """
-        Generate an image using DO AI inference API.
+        Generate an image using DO AI inference API with retry logic.
 
         Args:
             prompt: The image generation prompt
@@ -107,60 +153,101 @@ class DOAIClient:
         Returns:
             Image bytes or None if failed
         """
-        try:
-            logger.info(f"Generating image with model: {self.model_image}")
-            logger.debug(f"Image prompt: {prompt[:100]}...")
+        max_retries = 3
+        base_delay = 1.0
 
-            # Prepare the request (using OpenAI-compatible images endpoint)
-            url = f"{self.BASE_URL}/images/generations"
-            data = {
-                "model": self.model_image,
-                "prompt": prompt,
-                "n": 1,
-                "response_format": "b64_json"
-            }
+        for attempt in range(max_retries):
+            try:
+                if attempt > 0:
+                    logger.info(f"Retry attempt {attempt + 1}/{max_retries} for image generation")
+                else:
+                    logger.info(f"Generating image with model: {self.model_image}")
+                    logger.debug(f"Image prompt: {prompt[:100]}...")
 
-            # Make the API request
-            response = self.session.post(url, json=data, timeout=60)
-            response.raise_for_status()
+                # Prepare the request (using OpenAI-compatible images endpoint)
+                url = f"{self.BASE_URL}/images/generations"
+                data = {
+                    "model": self.model_image,
+                    "prompt": prompt,
+                    "n": 1,
+                    "response_format": "b64_json"
+                }
 
-            # Parse the response
-            result_json = response.json()
+                # Make the API request
+                response = self.session.post(url, json=data, timeout=60)
+                response.raise_for_status()
 
-            # Extract image data (OpenAI-compatible format)
-            if "data" in result_json and len(result_json["data"]) > 0:
-                image_item = result_json["data"][0]
+                # Parse the response
+                result_json = response.json()
 
-                # Check for base64 encoded image
-                if "b64_json" in image_item:
-                    image_data = image_item["b64_json"]
-                    # Remove data URL prefix if present
-                    if image_data.startswith('data:image'):
-                        image_data = image_data.split(',', 1)[1]
+                # Extract image data (OpenAI-compatible format)
+                if "data" in result_json and len(result_json["data"]) > 0:
+                    image_item = result_json["data"][0]
 
-                    # Decode base64
-                    image_bytes = base64.b64decode(image_data)
-                    logger.info(f"Generated image size: {len(image_bytes)} bytes")
-                    return image_bytes
+                    # Check for base64 encoded image
+                    if "b64_json" in image_item:
+                        image_data = image_item["b64_json"]
+                        # Remove data URL prefix if present
+                        if image_data.startswith('data:image'):
+                            image_data = image_data.split(',', 1)[1]
 
-                # Check for URL (download the image)
-                elif "url" in image_item:
-                    image_url = image_item["url"]
-                    img_response = self.session.get(image_url, timeout=30)
-                    img_response.raise_for_status()
-                    image_bytes = img_response.content
-                    logger.info(f"Downloaded image size: {len(image_bytes)} bytes")
-                    return image_bytes
+                        # Decode base64
+                        image_bytes = base64.b64decode(image_data)
+                        logger.info(f"Generated image size: {len(image_bytes)} bytes")
+                        return image_bytes
 
-            logger.error(f"Could not extract image data from response: {result_json}")
-            return None
+                    # Check for URL (download the image)
+                    elif "url" in image_item:
+                        image_url = image_item["url"]
+                        img_response = self.session.get(image_url, timeout=30)
+                        img_response.raise_for_status()
+                        image_bytes = img_response.content
+                        logger.info(f"Downloaded image size: {len(image_bytes)} bytes")
+                        return image_bytes
 
-        except requests.exceptions.RequestException as e:
-            logger.error(f"HTTP error generating image: {e}", exc_info=True)
-            return None
-        except Exception as e:
-            logger.error(f"Error generating image: {e}", exc_info=True)
-            return None
+                logger.error(f"Could not extract image data from response: {result_json}")
+                return None
+
+            except requests.exceptions.HTTPError as e:
+                # Handle rate limiting (429) with exponential backoff
+                if e.response.status_code == 429:
+                    retry_after = e.response.headers.get('Retry-After')
+                    if retry_after:
+                        try:
+                            delay = float(retry_after)
+                            logger.warning(f"Rate limited (429) for image. Retry-After: {delay}s")
+                        except ValueError:
+                            delay = base_delay * (2 ** attempt)
+                            logger.warning(f"Rate limited (429) for image. Exponential backoff: {delay}s")
+                    else:
+                        delay = base_delay * (2 ** attempt)
+                        logger.warning(f"Rate limited (429) for image. Exponential backoff: {delay}s")
+
+                    if attempt < max_retries - 1:
+                        logger.info(f"Waiting {delay}s before retry...")
+                        time.sleep(delay)
+                        continue
+                    else:
+                        logger.error(f"Rate limit exceeded for image after {max_retries} attempts")
+                        return None
+                else:
+                    logger.error(f"HTTP {e.response.status_code} error generating image: {e}", exc_info=True)
+                    return None
+
+            except requests.exceptions.RequestException as e:
+                logger.error(f"Network error generating image: {e}", exc_info=True)
+                if attempt < max_retries - 1:
+                    delay = base_delay * (2 ** attempt)
+                    logger.info(f"Retrying after network error in {delay}s...")
+                    time.sleep(delay)
+                    continue
+                return None
+
+            except Exception as e:
+                logger.error(f"Error generating image: {e}", exc_info=True)
+                return None
+
+        return None
 
     def close(self):
         """Close the HTTP session."""
