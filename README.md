@@ -6,8 +6,8 @@ Pablos adalah chatbot Telegram yang santai, gaul, dan multifungsi dengan persona
 
 ### 💬 Chat Interaktif Multi-turn
 - Percakapan natural dengan konteks berkelanjutan
-- Persona "Pablos" yang santai dan friendly
-- Menggunakan bahasa Indonesia gaul
+- Persona "Pablos" yang super santai dan friendly dengan bahasa gaul
+- Menggunakan bahasa Indonesia casual dengan kata-kata seperti "wkwkwk", "jir", "kontol", dll
 - Memory per-user dengan Redis atau in-memory fallback
 
 ### 🎨 Generate Gambar
@@ -27,6 +27,13 @@ Pablos adalah chatbot Telegram yang santai, gaul, dan multifungsi dengan persona
 - Mode empati untuk topik emosional/personal
 - Response supportif dan understanding
 - Tetap dengan persona Pablos yang warm
+
+### 📁 File & Media Storage
+- Upload dan simpan foto, video, audio, dokumen
+- Bot mengingat semua file yang dikirim user
+- Command: `/files` untuk melihat daftar file
+- Command: `/clearfiles` untuk menghapus semua file
+- Metadata lengkap: nama file, ukuran, tanggal upload, caption
 
 ## 🚀 Quick Start
 
@@ -88,6 +95,65 @@ export WEBHOOK_URL=https://yourdomain.com/webhook
 python -m app.main
 ```
 
+## 🔧 PM2 Process Management
+
+Pablos bot includes PM2 scripts for production deployment with auto-restart and monitoring.
+
+### Prerequisites
+```bash
+npm install -g pm2
+```
+
+### Quick Start with PM2
+
+**Start the bot:**
+```bash
+./start.sh
+```
+
+**Restart the bot:**
+```bash
+./restart.sh
+```
+
+**Check status:**
+```bash
+./status.sh
+```
+
+**View statistics:**
+```bash
+./stats.sh
+```
+
+**View live logs:**
+```bash
+pm2 logs pablos-ai
+```
+
+**Stop the bot:**
+```bash
+pm2 stop pablos-ai
+```
+
+**Remove from PM2:**
+```bash
+pm2 delete pablos-ai
+```
+
+### PM2 Features
+- ✅ Auto-restart on crash
+- ✅ Process monitoring
+- ✅ Log management
+- ✅ Memory limit (500MB)
+- ✅ Startup script support
+
+### Setup Auto-start on Boot
+```bash
+pm2 startup
+pm2 save
+```
+
 ## 🐳 Docker Deployment
 
 ### Build Image
@@ -136,6 +202,8 @@ volumes:
 - `/image <deskripsi>` - Generate gambar dari deskripsi
 - `/vent` - Masuk ke mode curhat/empati
 - `/clear` - Hapus history percakapan
+- `/files` - Lihat semua file yang sudah diupload
+- `/clearfiles` - Hapus semua file yang tersimpan
 
 ### Examples
 
@@ -170,10 +238,35 @@ User: Gue lagi stress banget nih...
 Pablos: Gue dengerin kok bro. Ceritain aja, apa yang bikin lu stress? 💙
 ```
 
+**Upload File:**
+```
+[User uploads a photo]
+Pablos: Oke jir, foto lu udah gue simpen! 📸
+Total file lu sekarang: 1
+
+Ketik /files buat liat semua file lu
+```
+
+**List Files:**
+```
+/files
+Pablos: 📁 File lu (3 total):
+
+1. 🖼️ photo_ABC123.jpg
+   Type: photo | Size: 245.3 KB | 23/10/2025 14:30
+   Caption: Sunset di pantai
+
+2. 📄 document.pdf
+   Type: document | Size: 1.2 MB | 23/10/2025 15:45
+
+3. 🎥 video_XYZ789.mp4
+   Type: video | Size: 5.8 MB | 23/10/2025 16:20
+```
+
 ## 🏗️ Architecture
 
 ```
-telegram-pablos-bot/
+pablos-ai/
 ├── app/
 │   ├── __init__.py          # Package initialization
 │   ├── main.py              # Entry point & bot setup
@@ -181,6 +274,7 @@ telegram-pablos-bot/
 │   ├── ai_client.py         # Gradient AI wrapper
 │   ├── prompts.py           # Prompt templates
 │   ├── memory.py            # Conversation memory (Redis/in-memory)
+│   ├── file_storage.py      # File/media storage manager
 │   └── utils.py             # Utilities (chunking, rate limiting, cache)
 ├── tests/                   # Unit tests
 ├── Dockerfile               # Container configuration
