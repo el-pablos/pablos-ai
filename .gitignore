@@ -36,6 +36,9 @@ env/
 # Environment variables
 .env
 
+# API Keys (SENSITIVE - DO NOT COMMIT)
+api.txt
+
 # Logs
 *.log
 logs/

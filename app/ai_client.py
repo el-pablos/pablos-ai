@@ -1,5 +1,6 @@
 """
-DO AI inference client wrapper for chat and image generation.
+MegaLLM API client wrapper for chat and image generation.
+Supports OpenAI-compatible API format with multi-endpoint failover.
 """
 
 import logging
@@ -45,8 +46,8 @@ class EndpointConfig:
         logger.info(f"Endpoint {self.name} cooldown reset")
 
 
-class DOAIClient:
-    """Wrapper for DO AI inference API calls with multi-endpoint failover support."""
+class MegaLLMClient:
+    """Wrapper for MegaLLM API calls with multi-endpoint failover support."""
 
     # Fallback responses for when all API endpoints are rate limited
     FALLBACK_RESPONSES = [
@@ -59,7 +60,7 @@ class DOAIClient:
     def __init__(self, endpoints: List[EndpointConfig], max_tokens: int = 400,
                  enable_fallback: bool = True, endpoint_cooldown: int = 300):
         """
-        Initialize DO AI client with multi-endpoint support.
+        Initialize MegaLLM client with multi-endpoint support.
 
         Args:
             endpoints: List of endpoint configurations (primary, secondary, etc.)
@@ -87,7 +88,7 @@ class DOAIClient:
             })
             self.sessions[endpoint.name] = session
 
-        logger.info(f"Initialized DOAIClient with {len(self.endpoints)} endpoint(s)")
+        logger.info(f"Initialized MegaLLMClient with {len(self.endpoints)} endpoint(s)")
         for i, endpoint in enumerate(self.endpoints):
             logger.info(f"  Endpoint {i+1} ({endpoint.name}): {endpoint.base_url} - Chat: {endpoint.model_chat}")
         if enable_fallback:
@@ -197,7 +198,7 @@ class DOAIClient:
 
     def generate_chat_response(self, prompt: str, temperature: float = 0.7) -> Optional[str]:
         """
-        Generate a chat response using DO AI inference API with multi-endpoint failover.
+        Generate a chat response using MegaLLM API with multi-endpoint failover.
 
         Args:
             prompt: The prompt to send to the model
@@ -266,7 +267,7 @@ class DOAIClient:
 
     def generate_image(self, prompt: str) -> Optional[bytes]:
         """
-        Generate an image using DO AI inference API with multi-endpoint failover.
+        Generate an image using MegaLLM API with multi-endpoint failover.
 
         Args:
             prompt: The image generation prompt
@@ -355,7 +356,7 @@ class DOAIClient:
         self.sessions.clear()
 
 
-class MockDOAIClient:
+class MockMegaLLMClient:
     """Mock client for testing without actual API calls."""
 
     def __init__(self, access_key: str, model_chat: str, model_image: str, max_tokens: int = 400):
@@ -364,7 +365,7 @@ class MockDOAIClient:
         self.model_chat = model_chat
         self.model_image = model_image
         self.max_tokens = max_tokens
-        logger.info("Initialized MockDOAIClient (for testing)")
+        logger.info("Initialized MockMegaLLMClient (for testing)")
 
     def generate_chat_response(self, prompt: str, temperature: float = 0.7) -> Optional[str]:
         """Generate a mock chat response."""
@@ -392,7 +393,7 @@ def create_ai_client(endpoints: Optional[List[EndpointConfig]] = None,
                      max_tokens: int = 400,
                      use_mock: bool = False,
                      enable_fallback: bool = True,
-                     endpoint_cooldown: int = 300) -> Union[DOAIClient, MockDOAIClient]:
+                     endpoint_cooldown: int = 300) -> Union[MegaLLMClient, MockMegaLLMClient]:
     """
     Factory function to create AI client with multi-endpoint support.
 
@@ -411,23 +412,27 @@ def create_ai_client(endpoints: Optional[List[EndpointConfig]] = None,
         AI client instance
     """
     if use_mock:
-        return MockDOAIClient(access_key or "mock", model_chat or "mock", model_image or "mock", max_tokens)
+        return MockMegaLLMClient(access_key or "mock", model_chat or "mock", model_image or "mock", max_tokens)
 
     # If endpoints list is provided, use it directly
     if endpoints:
-        return DOAIClient(endpoints, max_tokens, enable_fallback, endpoint_cooldown)
+        return MegaLLMClient(endpoints, max_tokens, enable_fallback, endpoint_cooldown)
 
     # Legacy support: create single endpoint from individual parameters
     if not access_key or not model_chat or not model_image:
         raise ValueError("Either 'endpoints' or all of (access_key, model_chat, model_image) must be provided")
 
     endpoint = EndpointConfig(
-        base_url=base_url or "https://inference.do-ai.run/v1",
+        base_url=base_url or "https://ai.megallm.io/v1",
         access_key=access_key,
         model_chat=model_chat,
         model_image=model_image,
         name="primary"
     )
 
-    return DOAIClient([endpoint], max_tokens, enable_fallback, endpoint_cooldown)
+    return MegaLLMClient([endpoint], max_tokens, enable_fallback, endpoint_cooldown)
 
+
+# Backward compatibility aliases
+DOAIClient = MegaLLMClient
+MockDOAIClient = MockMegaLLMClient

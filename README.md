@@ -1,6 +1,6 @@
 # Pablos Telegram Bot 🤖
 
-Pablos adalah chatbot Telegram yang santai, gaul, dan multifungsi dengan persona Indonesia yang asik. Bot ini menggunakan Gradient AI untuk chat interaktif, generate gambar, bantuan coding, dan mode curhat empatik.
+Pablos adalah chatbot Telegram yang santai, gaul, dan multifungsi dengan persona Indonesia yang asik. Bot ini menggunakan **MegaLLM** (model `gpt-4.1`) untuk chat interaktif, generate gambar, bantuan coding, dan mode curhat empatik.
 
 ## ✨ Fitur
 
@@ -13,7 +13,7 @@ Pablos adalah chatbot Telegram yang santai, gaul, dan multifungsi dengan persona
 ### 🎨 Generate Gambar
 - Command: `/image <deskripsi>`
 - Mengkonversi deskripsi user menjadi prompt detail
-- Menggunakan Gradient AI image model
+- Menggunakan MegaLLM image model
 - Mengirim hasil gambar langsung ke chat
 
 ### 💻 Code Helper
@@ -41,7 +41,7 @@ Pablos adalah chatbot Telegram yang santai, gaul, dan multifungsi dengan persona
 
 - Python 3.10 atau lebih tinggi
 - Telegram Bot Token (dari [@BotFather](https://t.me/botfather))
-- Gradient AI Access Key
+- MegaLLM API Key
 - (Opsional) Redis untuk persistent memory
 
 ### Installation
@@ -66,11 +66,13 @@ cp .env.example .env
 4. Konfigurasi `.env`:
 ```env
 TELEGRAM_BOT_TOKEN=your_telegram_bot_token
-MODEL_ACCESS_KEY=your_gradient_access_key
-MODEL_CHAT=anthropic-claude-opus-4
+MODEL_ACCESS_KEY=your_megallm_api_key
+MODEL_BASE_URL=https://ai.megallm.io/v1
+MODEL_CHAT=gpt-4.1
 MODEL_IMAGE=stability-image-1
 MAX_TOKENS=400
 COOLDOWN=2
+ENDPOINT_COOLDOWN=300
 
 # Optional: Redis configuration
 REDIS_URL=redis://:password@host:port/0
@@ -271,7 +273,7 @@ pablos-ai/
 │   ├── __init__.py          # Package initialization
 │   ├── main.py              # Entry point & bot setup
 │   ├── handlers.py          # Command & message handlers
-│   ├── ai_client.py         # Gradient AI wrapper
+│   ├── ai_client.py         # MegaLLM API wrapper
 │   ├── prompts.py           # Prompt templates
 │   ├── memory.py            # Conversation memory (Redis/in-memory)
 │   ├── file_storage.py      # File/media storage manager
@@ -280,6 +282,7 @@ pablos-ai/
 ├── Dockerfile               # Container configuration
 ├── requirements.txt         # Python dependencies
 ├── .env.example            # Environment template
+├── MIGRASI_MEGALLM.md      # Migration documentation
 └── README.md               # This file
 ```
 
@@ -406,8 +409,12 @@ MIT License - feel free to use this project for your own purposes.
 ## 🙏 Acknowledgments
 
 - [python-telegram-bot](https://github.com/python-telegram-bot/python-telegram-bot) - Telegram Bot API wrapper
-- [Gradient AI](https://gradient.ai/) - AI model provider
+- [MegaLLM](https://ai.megallm.io/) - AI model provider (gpt-4.1)
 - [Redis](https://redis.io/) - In-memory data store
+
+## 📝 Migration Notes
+
+Proyek ini telah dimigrasi dari DO AI Inference ke MegaLLM. Untuk detail lengkap tentang migrasi, lihat [MIGRASI_MEGALLM.md](MIGRASI_MEGALLM.md).
 
 ## 📞 Support
 

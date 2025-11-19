@@ -82,9 +82,9 @@ class PablosBot:
 
             # Use defaults if not specified
             if not base_url:
-                base_url = "https://inference.do-ai.run/v1"
+                base_url = "https://ai.megallm.io/v1"
             if not model_chat:
-                model_chat = "anthropic-claude-opus-4"
+                model_chat = "gpt-4.1"
             if not model_image:
                 model_image = "stability-image-1"
 

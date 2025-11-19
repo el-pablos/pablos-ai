@@ -26,7 +26,7 @@ module.exports = {
     name: 'pablos-ai',
     script: 'python3',
     args: '-m app.main',
-    cwd: '/root/work/pabs-ai',
+    cwd: '/root/work/pablos-ai',
     interpreter: 'none',
     instances: 1,
     autorestart: true,
