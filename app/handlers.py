@@ -1,5 +1,5 @@
 """
-Telegram command and message handlers for Pablos bot.
+Telegram command and message handlers for Babu Pablo bot.
 """
 
 import logging
@@ -22,6 +22,7 @@ from app.prompts import (
     build_chat_prompt, build_code_help_prompt, build_image_prompt,
     get_empathy_prompt, get_system_prompt
 )
+from app.knowledge_base import is_coding_query, get_relevant_knowledge
 
 logger = logging.getLogger(__name__)
 
@@ -55,11 +56,12 @@ class BotHandlers:
         
         welcome_message = (
             f"Halo {user.first_name}! 👋\n\n"
-            "Gue Pablos, temen chatbot lu yang santai dan asik! "
-            "Gue bisa bantuin lu buat:\n\n"
+            "Gue Babu Pablo dari TamsHub (owned by King Pablo), temen chatbot lu yang santai dan asik! "
+            "Gue expert dalam fullstack development dan bisa bantuin lu buat:\n\n"
             "💬 Ngobrol santai (multi-turn conversation)\n"
             "🎨 Bikin gambar - pakai /image <deskripsi>\n"
             "💻 Bantuin ngoding - kirim kode atau pakai 'explain:'\n"
+            "📚 Kasih knowledge base tentang coding (React, Node.js, Docker, dll)\n"
             "❤️ Dengerin curhat - pakai /vent\n\n"
             "Langsung aja chat gue, gak usah formal! 😎"
         )
@@ -69,7 +71,7 @@ class BotHandlers:
     async def help_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle /help command."""
         help_text = (
-            "📚 *Cara Pakai Pablos Bot:*\n\n"
+            "📚 *Cara Pakai Babu Pablo Bot:*\n\n"
             "*Ngobrol Biasa:*\n"
             "Langsung chat aja, gue bakal inget percakapan kita!\n\n"
             "*Generate Gambar:*\n"
@@ -77,7 +79,8 @@ class BotHandlers:
             "Contoh: `/image sunset di pantai dengan burung camar`\n\n"
             "*Bantuan Coding:*\n"
             "- Kirim kode dalam format markdown (```kode```)\n"
-            "- Atau pakai: `explain: <kode lu>`\n\n"
+            "- Atau pakai: `explain: <kode lu>`\n"
+            "- Tanya tentang React, Node.js, Docker, dll - gue punya knowledge base!\n\n"
             "*Mode Curhat:*\n"
             "`/vent` - Gue bakal dengerin dengan empati\n\n"
             "*File & Media:*\n"
@@ -87,7 +90,7 @@ class BotHandlers:
             "*Perintah Lain:*\n"
             "`/clear` - Hapus history percakapan\n"
             "`/help` - Tampilkan pesan ini\n\n"
-            "Santai aja, gue di sini buat bantuin lu! 🤙"
+            "Santai aja, gue Babu Pablo dari TamsHub, di sini buat bantuin lu! 🤙"
         )
 
         await update.message.reply_text(help_text, parse_mode='Markdown')
@@ -261,16 +264,23 @@ class BotHandlers:
         """Handle regular chat messages."""
         # Add user message to history
         self.memory.add_user_message(user_id, user_message)
-        
+
         # Get conversation history
         history = self.memory.format_history_for_prompt(user_id, max_messages=8)
-        
+
         # Choose system prompt based on mode
         if user_id in self.vent_mode_users:
             system_prompt = get_empathy_prompt()
         else:
             system_prompt = get_system_prompt()
-        
+
+            # Add knowledge base context for coding queries
+            if is_coding_query(user_message):
+                knowledge = get_relevant_knowledge(user_message)
+                if knowledge:
+                    system_prompt += f"\n\n{knowledge}"
+                    logger.info(f"Added knowledge base context for coding query")
+
         # Build prompt
         prompt = build_chat_prompt(system_prompt, history, user_message)
         

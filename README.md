@@ -1,14 +1,23 @@
-# Pablos Telegram Bot 🤖
+# Babu Pablo Telegram Bot 🤖
 
-Pablos adalah chatbot Telegram yang santai, gaul, dan multifungsi dengan persona Indonesia yang asik. Bot ini menggunakan **MegaLLM** (model `gpt-4.1`) untuk chat interaktif, generate gambar, bantuan coding, dan mode curhat empatik.
+**Babu Pablo** adalah AI assistant dari **TamsHub** (owned by **King Pablo**) - chatbot Telegram yang santai, gaul, dan multifungsi dengan persona Indonesia yang asik dan expertise dalam fullstack development. Bot ini menggunakan **MegaLLM** (model `openai-gpt-oss-20b`) untuk chat interaktif, generate gambar, bantuan coding dengan knowledge base, dan mode curhat empatik.
+
+## 👤 Identitas Bot
+
+- **Nama:** Babu Pablo
+- **Owner:** King Pablo
+- **Organization:** TamsHub
+- **Expertise:** Fullstack Development, AI Assistant
+- **Model AI:** MegaLLM `openai-gpt-oss-20b` (free tier)
 
 ## ✨ Fitur
 
 ### 💬 Chat Interaktif Multi-turn
 - Percakapan natural dengan konteks berkelanjutan
-- Persona "Pablos" yang super santai dan friendly dengan bahasa gaul
+- Persona "Babu Pablo" yang super santai dan friendly dengan bahasa gaul
 - Menggunakan bahasa Indonesia casual dengan kata-kata seperti "wkwkwk", "jir", "kontol", dll
 - Memory per-user dengan Redis atau in-memory fallback
+- Expert dalam fullstack development dengan knowledge base yang solid
 
 ### 🎨 Generate Gambar
 - Command: `/image <deskripsi>`
@@ -16,17 +25,23 @@ Pablos adalah chatbot Telegram yang santai, gaul, dan multifungsi dengan persona
 - Menggunakan MegaLLM image model
 - Mengirim hasil gambar langsung ke chat
 
-### 💻 Code Helper
+### 💻 Code Helper dengan Knowledge Base
 - Auto-detect code blocks dalam format markdown
 - Deteksi prefix `explain:` untuk analisis kode
+- **Knowledge base fullstack development:**
+  - Frontend: React, Vue, Next.js, TypeScript
+  - Backend: Node.js, Python (FastAPI, Django, Flask), Go, Rust
+  - Database: PostgreSQL, MongoDB, Redis, MySQL
+  - DevOps: Docker, Kubernetes, CI/CD, Git
 - Memberikan penjelasan, bug findings, dan kode yang diperbaiki
+- Best practices dan tips berdasarkan knowledge base
 - Response dalam bahasa Indonesia yang mudah dipahami
 
 ### ❤️ Curhat Mode
 - Command: `/vent`
 - Mode empati untuk topik emosional/personal
 - Response supportif dan understanding
-- Tetap dengan persona Pablos yang warm
+- Tetap dengan persona Babu Pablo yang warm
 
 ### 📁 File & Media Storage
 - Upload dan simpan foto, video, audio, dokumen
@@ -68,7 +83,7 @@ cp .env.example .env
 TELEGRAM_BOT_TOKEN=your_telegram_bot_token
 MODEL_ACCESS_KEY=your_megallm_api_key
 MODEL_BASE_URL=https://ai.megallm.io/v1
-MODEL_CHAT=gpt-4.1
+MODEL_CHAT=openai-gpt-oss-20b  # Free tier model
 MODEL_IMAGE=stability-image-1
 MAX_TOKENS=400
 COOLDOWN=2
@@ -99,7 +114,7 @@ python -m app.main
 
 ## 🔧 PM2 Process Management
 
-Pablos bot includes PM2 scripts for production deployment with auto-restart and monitoring.
+Babu Pablo bot includes PM2 scripts for production deployment with auto-restart and monitoring.
 
 ### Prerequisites
 ```bash
@@ -212,7 +227,13 @@ volumes:
 **Chat Biasa:**
 ```
 User: Halo bro!
-Pablos: Halo juga! Ada yang bisa gue bantuin? 😎
+Babu Pablo: Halo juga! Ada yang bisa gue bantuin? 😎
+```
+
+**Coding Query dengan Knowledge Base:**
+```
+User: Gimana cara pakai React hooks?
+Babu Pablo: [Memberikan penjelasan dengan best practices dari knowledge base]
 ```
 
 **Generate Gambar:**
@@ -237,13 +258,13 @@ explain: def calculate(a, b): return a + b
 ```
 /vent
 User: Gue lagi stress banget nih...
-Pablos: Gue dengerin kok bro. Ceritain aja, apa yang bikin lu stress? 💙
+Babu Pablo: Gue dengerin kok bro. Ceritain aja, apa yang bikin lu stress? 💙
 ```
 
 **Upload File:**
 ```
 [User uploads a photo]
-Pablos: Oke jir, foto lu udah gue simpen! 📸
+Babu Pablo: Oke jir, foto lu udah gue simpen! 📸
 Total file lu sekarang: 1
 
 Ketik /files buat liat semua file lu
@@ -252,7 +273,7 @@ Ketik /files buat liat semua file lu
 **List Files:**
 ```
 /files
-Pablos: 📁 File lu (3 total):
+Babu Pablo: 📁 File lu (3 total):
 
 1. 🖼️ photo_ABC123.jpg
    Type: photo | Size: 245.3 KB | 23/10/2025 14:30
@@ -274,7 +295,8 @@ pablos-ai/
 │   ├── main.py              # Entry point & bot setup
 │   ├── handlers.py          # Command & message handlers
 │   ├── ai_client.py         # MegaLLM API wrapper
-│   ├── prompts.py           # Prompt templates
+│   ├── prompts.py           # Prompt templates & persona
+│   ├── knowledge_base.py    # Fullstack development knowledge base (NEW)
 │   ├── memory.py            # Conversation memory (Redis/in-memory)
 │   ├── file_storage.py      # File/media storage manager
 │   └── utils.py             # Utilities (chunking, rate limiting, cache)
@@ -293,11 +315,13 @@ pablos-ai/
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `TELEGRAM_BOT_TOKEN` | Yes | - | Token dari BotFather |
-| `MODEL_ACCESS_KEY` | Yes | - | Gradient AI access key |
-| `MODEL_CHAT` | No | `anthropic-claude-opus-4` | Chat model name |
+| `MODEL_ACCESS_KEY` | Yes | - | MegaLLM API key |
+| `MODEL_BASE_URL` | No | `https://ai.megallm.io/v1` | MegaLLM base URL |
+| `MODEL_CHAT` | No | `openai-gpt-oss-20b` | Chat model name (free tier) |
 | `MODEL_IMAGE` | No | `stability-image-1` | Image model name |
 | `MAX_TOKENS` | No | `400` | Max tokens per response |
 | `COOLDOWN` | No | `2` | Cooldown seconds per user |
+| `ENDPOINT_COOLDOWN` | No | `300` | Endpoint cooldown seconds |
 | `REDIS_URL` | No | - | Redis connection URL |
 | `WEBHOOK_URL` | No | - | Webhook URL (for webhook mode) |
 | `PORT` | No | `8443` | Port for webhook server |
@@ -409,12 +433,21 @@ MIT License - feel free to use this project for your own purposes.
 ## 🙏 Acknowledgments
 
 - [python-telegram-bot](https://github.com/python-telegram-bot/python-telegram-bot) - Telegram Bot API wrapper
-- [MegaLLM](https://ai.megallm.io/) - AI model provider (gpt-4.1)
+- [MegaLLM](https://ai.megallm.io/) - AI model provider (openai-gpt-oss-20b)
 - [Redis](https://redis.io/) - In-memory data store
 
 ## 📝 Migration Notes
 
 Proyek ini telah dimigrasi dari DO AI Inference ke MegaLLM. Untuk detail lengkap tentang migrasi, lihat [MIGRASI_MEGALLM.md](MIGRASI_MEGALLM.md).
+
+## 🎯 Recent Updates
+
+### v2.0 - Personalisasi & Knowledge Base Enhancement
+- ✅ Rebranding: "Pablos" → "Babu Pablo"
+- ✅ Identitas: TamsHub (owned by King Pablo)
+- ✅ Knowledge base fullstack development
+- ✅ Enhanced coding assistance dengan best practices
+- ✅ Improved system prompts dengan expertise focus
 
 ## 📞 Support
 
@@ -425,5 +458,5 @@ Jika ada pertanyaan atau issues:
 
 ---
 
-Made with ❤️ by the Pablos team
+Made with ❤️ by **TamsHub** - Owned by **King Pablo**
 

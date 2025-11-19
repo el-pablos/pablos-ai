@@ -21,7 +21,9 @@ class TestPromptConstants:
     
     def test_system_pablos_contains_persona(self):
         """Test that system prompt contains persona information."""
-        assert "Pablos" in SYSTEM_PABLOS
+        assert "Babu Pablo" in SYSTEM_PABLOS
+        assert "TamsHub" in SYSTEM_PABLOS
+        assert "King Pablo" in SYSTEM_PABLOS
         assert "Indonesia" in SYSTEM_PABLOS or "indonesia" in SYSTEM_PABLOS.lower()
     
     def test_prompt_code_help_exists(self):
@@ -54,7 +56,7 @@ class TestBuildChatPrompt:
         prompt = build_chat_prompt(system, history, message)
         assert system in prompt
         assert "User: Hello" in prompt
-        assert "Pablos:" in prompt
+        assert "Babu Pablo:" in prompt
     
     def test_build_chat_prompt_with_history(self):
         """Test building chat prompt with conversation history."""
@@ -89,7 +91,8 @@ class TestBuildCodeHelpPrompt:
         prompt = build_code_help_prompt(code)
         
         assert code in prompt
-        assert "Pablos" in prompt
+        assert "Babu Pablo" in prompt
+        assert "TamsHub" in prompt
         assert len(prompt) > len(code)
     
     def test_build_code_help_prompt_with_complex_code(self):
