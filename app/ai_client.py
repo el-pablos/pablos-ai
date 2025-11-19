@@ -210,6 +210,7 @@ class MegaLLMClient:
             Generated response text or None if failed
         """
         logger.info(f"Generating chat response (prompt length: {len(prompt)} characters)")
+        logger.debug(f"Prompt preview: {prompt[:200]}...")  # Log first 200 chars for debugging
 
         # Try each available endpoint
         endpoints_tried = 0
@@ -234,36 +235,67 @@ class MegaLLMClient:
             if endpoint.model_chat:
                 data["model"] = endpoint.model_chat
 
+            logger.debug(f"Request data: model={data.get('model')}, max_tokens={data['max_tokens']}, temperature={data['temperature']}")
+
             # Try this endpoint with retries
             result_json = self._try_endpoint_request(endpoint, "/chat/completions", data, max_retries=3)
 
             if result_json:
-                # Log the full response for debugging
+                # Check for API errors first
+                if "error" in result_json:
+                    error_msg = result_json["error"]
+                    if isinstance(error_msg, dict):
+                        error_msg = error_msg.get("message", str(error_msg))
+                    logger.error(f"API error from {endpoint.name}: {error_msg}")
+                    # Continue to next endpoint
+                    logger.warning(f"Endpoint {endpoint.name} returned error, trying next endpoint...")
+                    self.current_endpoint_index = (self.current_endpoint_index + 1) % len(self.endpoints)
+                    continue
+
+                # Log the full response for debugging (only in debug mode to avoid log spam)
                 logger.debug(f"API Response from {endpoint.name}: {result_json}")
 
                 # Extract the generated text (OpenAI-compatible format)
                 if "choices" in result_json and len(result_json["choices"]) > 0:
                     choice = result_json["choices"][0]
+
+                    # Check for finish_reason to understand why generation stopped
+                    finish_reason = choice.get("finish_reason")
+                    if finish_reason:
+                        logger.debug(f"Finish reason: {finish_reason}")
+
+                    # Try to extract content from message.content
                     if "message" in choice and "content" in choice["message"]:
                         content = choice["message"]["content"]
-                        # Check if content is not None before calling strip()
-                        if content is not None:
+                        # Check if content is not None and not empty
+                        if content is not None and content.strip():
                             result = content.strip()
                             logger.info(f"✅ Success on {endpoint.name}! Response length: {len(result)} characters")
                             return result
                         else:
-                            logger.warning(f"Content is None from {endpoint.name}, trying next endpoint...")
+                            logger.warning(f"Content is None or empty from {endpoint.name}. Full choice: {choice}")
+                            logger.warning(f"Trying next endpoint...")
+                            # Continue to next endpoint
+                            self.current_endpoint_index = (self.current_endpoint_index + 1) % len(self.endpoints)
+                            continue
+
+                    # Fallback: try to extract from text field (some APIs use this)
                     elif "text" in choice:
                         text = choice["text"]
-                        # Check if text is not None before calling strip()
-                        if text is not None:
+                        # Check if text is not None and not empty
+                        if text is not None and text.strip():
                             result = text.strip()
                             logger.info(f"✅ Success on {endpoint.name}! Response length: {len(result)} characters")
                             return result
                         else:
-                            logger.warning(f"Text is None from {endpoint.name}, trying next endpoint...")
+                            logger.warning(f"Text is None or empty from {endpoint.name}. Full choice: {choice}")
+                            logger.warning(f"Trying next endpoint...")
+                            # Continue to next endpoint
+                            self.current_endpoint_index = (self.current_endpoint_index + 1) % len(self.endpoints)
+                            continue
 
-                logger.error(f"Unexpected response format from {endpoint.name}: {result_json}")
+                # If we get here, the response format is unexpected
+                logger.error(f"Unexpected response format from {endpoint.name}. Full response: {result_json}")
 
             # This endpoint failed, try next one
             logger.warning(f"Endpoint {endpoint.name} failed, trying next endpoint...")
