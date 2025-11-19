@@ -247,7 +247,7 @@ class MegaLLMClient:
                     if isinstance(error_msg, dict):
                         error_msg = error_msg.get("message", str(error_msg))
                     logger.error(f"API error from {endpoint.name}: {error_msg}")
-                    # Continue to next endpoint
+                    # Move to next endpoint and continue
                     logger.warning(f"Endpoint {endpoint.name} returned error, trying next endpoint...")
                     self.current_endpoint_index = (self.current_endpoint_index + 1) % len(self.endpoints)
                     continue
@@ -263,6 +263,9 @@ class MegaLLMClient:
                     finish_reason = choice.get("finish_reason")
                     if finish_reason:
                         logger.debug(f"Finish reason: {finish_reason}")
+                        # Special handling for 'length' finish reason with null content
+                        if finish_reason == "length" and choice.get("message", {}).get("content") is None:
+                            logger.warning(f"API hit token limit and returned null content. This may indicate a prompt issue.")
 
                     # Try to extract content from message.content
                     if "message" in choice and "content" in choice["message"]:
@@ -274,10 +277,7 @@ class MegaLLMClient:
                             return result
                         else:
                             logger.warning(f"Content is None or empty from {endpoint.name}. Full choice: {choice}")
-                            logger.warning(f"Trying next endpoint...")
-                            # Continue to next endpoint
-                            self.current_endpoint_index = (self.current_endpoint_index + 1) % len(self.endpoints)
-                            continue
+                            # Fall through to try next endpoint
 
                     # Fallback: try to extract from text field (some APIs use this)
                     elif "text" in choice:
@@ -289,16 +289,13 @@ class MegaLLMClient:
                             return result
                         else:
                             logger.warning(f"Text is None or empty from {endpoint.name}. Full choice: {choice}")
-                            logger.warning(f"Trying next endpoint...")
-                            # Continue to next endpoint
-                            self.current_endpoint_index = (self.current_endpoint_index + 1) % len(self.endpoints)
-                            continue
+                            # Fall through to try next endpoint
 
-                # If we get here, the response format is unexpected
-                logger.error(f"Unexpected response format from {endpoint.name}. Full response: {result_json}")
+                # If we get here, the response format is unexpected or content was null
+                logger.error(f"Unexpected response format or null content from {endpoint.name}. Full response: {result_json}")
 
-            # This endpoint failed, try next one
-            logger.warning(f"Endpoint {endpoint.name} failed, trying next endpoint...")
+            # This endpoint failed, move to next one
+            logger.warning(f"Endpoint {endpoint.name} failed, moving to next endpoint...")
             self.current_endpoint_index = (self.current_endpoint_index + 1) % len(self.endpoints)
 
         # All endpoints failed

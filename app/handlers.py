@@ -262,10 +262,8 @@ class BotHandlers:
     
     async def _handle_chat(self, update: Update, user_id: int, user_message: str) -> None:
         """Handle regular chat messages."""
-        # Add user message to history
-        self.memory.add_user_message(user_id, user_message)
-
-        # Get conversation history
+        # Get conversation history BEFORE adding current message
+        # This prevents history imbalance when requests fail
         history = self.memory.format_history_for_prompt(user_id, max_messages=8)
 
         # Choose system prompt based on mode
@@ -283,11 +281,11 @@ class BotHandlers:
 
         # Build prompt
         prompt = build_chat_prompt(system_prompt, history, user_message)
-        
+
         # Check cache
         cache_key = hash_prompt(prompt)
         cached_response = self.cache.get(cache_key)
-        
+
         if cached_response:
             response = cached_response
             logger.info("Using cached chat response")
@@ -297,7 +295,9 @@ class BotHandlers:
                 self.cache.set(cache_key, response)
 
         if response:
-            # Add assistant response to history
+            # Add both user message and assistant response to history
+            # Only add to history if we got a successful response
+            self.memory.add_user_message(user_id, user_message)
             self.memory.add_assistant_message(user_id, response)
 
             # Send response in chunks if needed
@@ -305,6 +305,8 @@ class BotHandlers:
             for chunk in chunks:
                 await update.message.reply_text(chunk)
         else:
+            # Don't add to history if request failed
+            # This prevents history imbalance
             await update.message.reply_text(
                 "Waduh, gue lagi error nih. Coba lagi ya! 😅"
             )
