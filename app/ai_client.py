@@ -236,17 +236,30 @@ class MegaLLMClient:
             result_json = self._try_endpoint_request(endpoint, "/chat/completions", data, max_retries=3)
 
             if result_json:
+                # Log the full response for debugging
+                logger.debug(f"API Response from {endpoint.name}: {result_json}")
+
                 # Extract the generated text (OpenAI-compatible format)
                 if "choices" in result_json and len(result_json["choices"]) > 0:
                     choice = result_json["choices"][0]
                     if "message" in choice and "content" in choice["message"]:
-                        result = choice["message"]["content"].strip()
-                        logger.info(f"✅ Success on {endpoint.name}! Response length: {len(result)} characters")
-                        return result
+                        content = choice["message"]["content"]
+                        # Check if content is not None before calling strip()
+                        if content is not None:
+                            result = content.strip()
+                            logger.info(f"✅ Success on {endpoint.name}! Response length: {len(result)} characters")
+                            return result
+                        else:
+                            logger.warning(f"Content is None from {endpoint.name}, trying next endpoint...")
                     elif "text" in choice:
-                        result = choice["text"].strip()
-                        logger.info(f"✅ Success on {endpoint.name}! Response length: {len(result)} characters")
-                        return result
+                        text = choice["text"]
+                        # Check if text is not None before calling strip()
+                        if text is not None:
+                            result = text.strip()
+                            logger.info(f"✅ Success on {endpoint.name}! Response length: {len(result)} characters")
+                            return result
+                        else:
+                            logger.warning(f"Text is None from {endpoint.name}, trying next endpoint...")
 
                 logger.error(f"Unexpected response format from {endpoint.name}: {result_json}")
 
