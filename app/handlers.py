@@ -125,15 +125,15 @@ class BotHandlers:
     async def image_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle /image command to generate images."""
         user_id = update.effective_user.id
-        
-        # Check rate limit
-        allowed, remaining = self.rate_limiter.check_rate_limit(user_id)
-        if not allowed:
-            await update.message.reply_text(
-                f"Santai bro, tunggu {remaining:.1f} detik lagi ya! ⏳"
-            )
-            return
-        
+
+        # Rate limiting disabled for fast, interactive responses
+        # allowed, remaining = self.rate_limiter.check_rate_limit(user_id)
+        # if not allowed:
+        #     await update.message.reply_text(
+        #         f"Santai bro, tunggu {remaining:.1f} detik lagi ya! ⏳"
+        #     )
+        #     return
+
         # Get the description
         if not context.args:
             await update.message.reply_text(
@@ -190,18 +190,18 @@ class BotHandlers:
         """Handle regular text messages."""
         user_id = update.effective_user.id
         user_message = update.message.text
-        
+
         if not user_message:
             return
-        
-        # Check rate limit
-        allowed, remaining = self.rate_limiter.check_rate_limit(user_id)
-        if not allowed:
-            await update.message.reply_text(
-                f"Tunggu {remaining:.1f} detik lagi ya bro! ⏳"
-            )
-            return
-        
+
+        # Rate limiting disabled for fast, interactive responses
+        # allowed, remaining = self.rate_limiter.check_rate_limit(user_id)
+        # if not allowed:
+        #     await update.message.reply_text(
+        #         f"Tunggu {remaining:.1f} detik lagi ya bro! ⏳"
+        #     )
+        #     return
+
         user_message = sanitize_user_input(user_message)
         logger.info(f"User {user_id} sent message: {user_message[:50]}...")
         

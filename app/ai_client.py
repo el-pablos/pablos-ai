@@ -30,9 +30,11 @@ class EndpointConfig:
 
     def is_available(self) -> bool:
         """Check if endpoint is available (not in cooldown)."""
-        if self.cooldown_until is None:
-            return True
-        return datetime.now() >= self.cooldown_until
+        # Cooldown disabled - always return True for fast, interactive responses
+        return True
+        # if self.cooldown_until is None:
+        #     return True
+        # return datetime.now() >= self.cooldown_until
 
     def mark_rate_limited(self, cooldown_seconds: int = 300):
         """Mark endpoint as rate limited with cooldown period."""
@@ -171,9 +173,9 @@ class MegaLLMClient:
                         time.sleep(delay)
                         continue
                     else:
-                        # Mark endpoint as rate limited
-                        endpoint.mark_rate_limited(self.endpoint_cooldown)
-                        logger.error(f"Endpoint {endpoint.name} rate limited after {max_retries} attempts")
+                        # Endpoint cooldown disabled - do not mark as rate limited
+                        # endpoint.mark_rate_limited(self.endpoint_cooldown)
+                        logger.error(f"Endpoint {endpoint.name} rate limited after {max_retries} attempts (cooldown disabled)")
                         return None
                 else:
                     # Other HTTP errors
@@ -270,11 +272,11 @@ class MegaLLMClient:
         # All endpoints failed
         logger.error(f"All {endpoints_tried} available endpoint(s) failed")
 
-        # Use fallback response if enabled
-        if self.enable_fallback:
-            fallback = self._get_fallback_response()
-            logger.warning(f"Using fallback response (all endpoints failed)")
-            return fallback
+        # Fallback responses disabled - return None to let handler show error
+        # if self.enable_fallback:
+        #     fallback = self._get_fallback_response()
+        #     logger.warning(f"Using fallback response (all endpoints failed)")
+        #     return fallback
 
         return None
 

@@ -40,10 +40,10 @@ class PablosBot:
         # Load configuration
         self.telegram_token = os.getenv('TELEGRAM_BOT_TOKEN')
         self.max_tokens = int(os.getenv('MAX_TOKENS', '400'))
-        self.cooldown = int(os.getenv('COOLDOWN', '2'))
+        self.cooldown = int(os.getenv('COOLDOWN', '0'))  # Disabled for fast, interactive responses
         self.webhook_url = os.getenv('WEBHOOK_URL')
         self.port = int(os.getenv('PORT', '8443'))
-        self.endpoint_cooldown = int(os.getenv('ENDPOINT_COOLDOWN', '300'))  # 5 minutes default
+        self.endpoint_cooldown = int(os.getenv('ENDPOINT_COOLDOWN', '0'))  # Disabled for fast responses
 
         # Validate required configuration
         if not self.telegram_token:
@@ -109,7 +109,7 @@ class PablosBot:
             endpoints=self.endpoints,
             max_tokens=self.max_tokens,
             use_mock=False,  # Set to True for testing without API calls
-            enable_fallback=True,
+            enable_fallback=False,  # Disabled to avoid quota exhausted messages
             endpoint_cooldown=self.endpoint_cooldown
         )
         
