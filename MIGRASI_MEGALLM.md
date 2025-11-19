@@ -201,6 +201,47 @@ Ini berarti kode yang masih menggunakan `DOAIClient` akan tetap berfungsi tanpa 
 
 ---
 
+## 🐛 Bug Fixes & Improvements
+
+### Fix: AttributeError when API returns None content (2025-11-19)
+
+#### Problem:
+Bot mengalami crash dengan error `'NoneType' object has no attribute 'strip'` ketika MegaLLM API mengembalikan response dengan `content: null`.
+
+#### Root Cause:
+- MegaLLM API kadang mengembalikan response dengan `content: null` untuk certain queries
+- Kode sebelumnya langsung memanggil `.strip()` tanpa mengecek apakah content adalah `None`
+- Ini menyebabkan bot crash dan user mendapat error message
+
+#### Solution:
+```python
+# Before (Error-prone):
+result = choice["message"]["content"].strip()
+
+# After (Safe):
+content = choice["message"]["content"]
+if content is not None:
+    result = content.strip()
+    return result
+else:
+    logger.warning(f"Content is None, trying next endpoint...")
+```
+
+#### Changes:
+- ✅ Added null-check before calling `.strip()` on API response content
+- ✅ Added debug logging to track API responses
+- ✅ Graceful fallback to next endpoint if content is None
+- ✅ Better error handling and logging
+
+#### Impact:
+- ✅ Bot no longer crashes on None content responses
+- ✅ Improved reliability and user experience
+- ✅ Better debugging capabilities with detailed logs
+
+#### Commit: `a4b8631`
+
+---
+
 ## 🎉 Kesimpulan
 
 Migrasi ke MegaLLM telah **berhasil 100%** dengan:
@@ -209,7 +250,8 @@ Migrasi ke MegaLLM telah **berhasil 100%** dengan:
 - ✅ API key tersimpan dengan aman
 - ✅ Backward compatibility terjaga
 - ✅ Dokumentasi lengkap tersedia
-- ✅ Model diupdate ke `gpt-4.1` untuk performa lebih baik
+- ✅ Model diupdate ke `openai-gpt-oss-20b` (free tier, stable)
+- ✅ Critical bug fixes untuk production stability
 
 Bot siap digunakan dengan MegaLLM sebagai provider AI utama! 🚀
 
